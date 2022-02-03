@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
-import java.util.Arrays;
 
 @RestController
 public class CartRestController {
@@ -17,17 +16,19 @@ public class CartRestController {
     private CartService cartService;
 
     @PostMapping("/add-cart")
-    public String addCart(@RequestBody CartModel cartModel){
+    public String addCart(
+            @RequestBody CartModel cartModel) {
 
         return cartService.addCart(getEntity(cartModel));
     }
-@GetMapping("/view-cart/{email}")
-public String  viewCart(@PathVariable  String email){
-        return cartService.viewCart(email);
-}
 
-    CartEntity getEntity(CartModel model){
-        CartEntity entity =new CartEntity();
+    @GetMapping("/view-cart/{email}")
+    public String viewCart(@PathVariable("email") String email) {
+        return cartService.viewCart(email);
+    }
+
+    CartEntity getEntity(CartModel model) {
+        CartEntity entity = new CartEntity();
         entity.setEmail(model.getEmail());
         entity.setProductCode(model.getProductCode());
         entity.setQuantity(model.getQuantity());
@@ -35,17 +36,21 @@ public String  viewCart(@PathVariable  String email){
 
         return entity;
     }
-@PostMapping("/update-order-status")
-public StatusUpdate updateOrderStatus(@RequestBody StatusUpdate statusUpdate){
-        return  cartService.updateOrderStatus(statusUpdate);
+
+    @PostMapping("/update-order-status")
+    public StatusUpdate updateOrderStatus(@RequestBody StatusUpdate statusUpdate) {
+        return cartService.updateOrderStatus(statusUpdate);
+    }
+
+    @PostMapping("/place-order/{email}")
+    public OrderEntity placeOrder(@PathVariable("email") String email) throws SQLException {
+
+        return cartService.placeOrder(email);
+    }
+
+    @GetMapping("/get-order-status/{oid}")
+    public StatusUpdate getOrderStatus(@PathVariable("oid") String orderId) {
+        return cartService.getStatus(orderId);
+    }
 }
 
-@PostMapping("/place-order/{email}")
-        public OrderEntity placeOrder(@PathVariable("email") String email) throws SQLException {
-            return cartService.placeOrder(email);
-        }
-@GetMapping("/get-order-status/{oid}")
-    public StatusUpdate getOrderStatus(@PathVariable("oid") String  orderId){
-        return  cartService.getStatus(orderId);
-}
-}

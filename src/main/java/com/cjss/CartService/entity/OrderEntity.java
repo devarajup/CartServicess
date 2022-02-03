@@ -29,7 +29,7 @@ public class OrderEntity {
     }
 
     private String orderStatus;
-   @JsonManagedReference
+/*   @JsonManagedReference
     public List<ItemsEntity> getItemsOrderedList() {
         return itemsOrderedList;
     }
@@ -40,13 +40,17 @@ public class OrderEntity {
     @JsonManagedReference
     public BillingAddressEntity getBillingAddressEntity() {
         return billingAddressEntity;
-    }
+    }*/
 
-    @OneToMany(fetch = FetchType.LAZY)
+    @OneToMany(fetch = FetchType.LAZY,mappedBy = "orderEntity")
+    @JsonIgnoreProperties("orderEntity")
     private List<ItemsEntity> itemsOrderedList;
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL,fetch = FetchType.LAZY)
+    @JoinColumn(name = "ShippingAddressId",referencedColumnName = "ShippingAddressId")
     private ShippingAddressEntity shippingAddressEntity;
-    @OneToOne
+
+    @OneToOne( cascade = CascadeType.ALL,fetch = FetchType.LAZY)
+    @JoinColumn(name = "BillingAddressId",referencedColumnName = "BillingAddressId")
     private BillingAddressEntity billingAddressEntity;
 
 }

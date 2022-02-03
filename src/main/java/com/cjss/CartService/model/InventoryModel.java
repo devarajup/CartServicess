@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class InventoryModel {
-    private Integer skuCode;
+    private String skuCode;
     private Integer quantityAvailable;
 }

@@ -5,18 +5,18 @@ import com.cjss.CartService.model.InventoryModel;
 import com.cjss.CartService.model.StatusUpdate;
 import com.cjss.CartService.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @Service
 public class CartService {
-    private final RestTemplate rest = new RestTemplate();
     @Autowired
     private CartRepository cartRepository;
     @Autowired
@@ -25,9 +25,10 @@ public class CartService {
     private ItemsRepository itemsRepository;
     @Autowired
     private BillingAddressRepository billingAddressRepository;
-    @Autowired
+    @Autowired(required=true)
     private ShipingAddressRepository shipingAddressRepository;
 
+private  RestTemplate rt =new RestTemplate();
     public String addCart(CartEntity entity) {
         Integer oldQty = 0;
         if (cartRepository.existsByEmail(entity.getEmail()) && cartRepository.existsBySkuCode(entity.getSkuCode())) {
@@ -91,15 +92,17 @@ public class CartService {
         itemsEntityList.stream().map(e -> {
             InventoryModel inventoryModel = new InventoryModel();
             inventoryModel.setQuantityAvailable(e.getQuantity());
-            inventoryModel.setSkuCode(Integer.valueOf(e.getSkuCode()));
+            inventoryModel.setSkuCode(e.getSkuCode());
             System.out.println(updateInventory(inventoryModel).toString());
             return inventoryModel;
         }).collect(Collectors.toList()).forEach(System.out::println);
-        String id = orderRepository.save(order).getOrderCode();
-        Integer billId = billingAddressRepository.save(new BillingAddressEntity("234", "dufdf", "fehdu", order)).getBillingAddressId();
-        Integer shipId = shipingAddressRepository.save(new ShippingAddressEntity("423", "gdf", "dfdf", order)).getShippingAddressId();
+        //   String id = orderRepository.save(order).getOrderCode();
+        Integer billId = billingAddressRepository.save(new BillingAddressEntity("234", "dufdf", "fehdu")).getBillingAddressId();
+        Integer shipId = shipingAddressRepository.save(new ShippingAddressEntity("423", "gdf", "dfdf")).getShippingAddressId();
         order.setShippingAddressEntity(shipingAddressRepository.getById(shipId));
         order.setBillingAddressEntity(billingAddressRepository.getById(billId));
+        String id = orderRepository.save(order).getOrderCode();
+
         return orderRepository.getById(id);
     }
 
@@ -118,14 +121,41 @@ public class CartService {
     }
 
     public StatusUpdate updateOrderStatus(StatusUpdate statusUpdate) {
+        String url = UriComponentsBuilder.fromUriString("http://localhost:8083/add-inventory").build().toUriString();
+
+        if (statusUpdate.getOrderStatus().contains("RETURNED")) {
+            List<ItemsEntity> itemsEntityList = itemsRepository.findAll();
+            List<InventoryModel> inventoryModelList = itemsEntityList.stream()
+                    .filter(e -> orderRepository.existsById(e.getOrderEntity().getOrderCode()))
+                    .map(e -> {
+                        return new InventoryModel(e.getSkuCode(), e.getQuantity());
+                    }).collect(Collectors.toList());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+             inventoryModelList.stream().forEach(e
+                     -> rt.exchange(url, HttpMethod.POST,new HttpEntity<InventoryModel>(
+                             new InventoryModel(e.getSkuCode(),e.getQuantityAvailable()),headers), String.class));
+        }
         orderRepository.updateOrderStatus(statusUpdate.getOrderCode(), statusUpdate.getOrderStatus());
         OrderEntity entity = orderRepository.getById(statusUpdate.getOrderCode());
-        return new StatusUpdate(entity.getOrderCode(), entity.getOrderStatus());
+        System.out.println("--UpdateOrder___"+entity.getOrderStatus());
+        StatusUpdate statusUpdate1 =new StatusUpdate(entity.getOrderCode(), entity.getOrderStatus());
+        return statusUpdate1;
     }
 
     public StatusUpdate getStatus(String orderId) {
 
         OrderEntity entity = orderRepository.getById(orderId);
         return new StatusUpdate(entity.getOrderCode(), entity.getOrderStatus());
+    }
+
+    public String gemMailByToken(String token) {
+        String url = UriComponentsBuilder.fromUriString("http://localhost:8081/get-mail").queryParam("token", token).build().toUriString();
+        //1. create RT object
+        RestTemplate rt = new RestTemplate();
+        System.out.println(url);
+        //3. make HTTP call and get Response
+        ResponseEntity<String> resp = rt.getForEntity(url, String.class);
+        return resp.getBody();
     }
 }

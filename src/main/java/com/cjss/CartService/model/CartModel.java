@@ -8,8 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CartModel {
-    public CartModel(String email, String productCode, String skuCode, Integer quantity) {
-        this.email = email;
+    public CartModel(String productCode, String skuCode, Integer quantity) {
         this.productCode = productCode;
         this.skuCode = skuCode;
         this.quantity = quantity;
