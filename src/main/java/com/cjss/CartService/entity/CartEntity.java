@@ -30,13 +30,4 @@ public class CartEntity {
     private  String skuCode;
     private  Integer quantity;
 
-    @OneToOne(mappedBy = "cartEntity")
-    @JoinColumn(name = "billing_address_id", referencedColumnName = "email")
-    private BillingAddressEntity billingAddressEntity;
-
-    @OneToOne(mappedBy = "cartEntity")
-    @JoinColumn(name = "shipping_address_id", referencedColumnName = "email")
-    private ShippingAddressEntity shippingAddressEntity;
-
-
 }

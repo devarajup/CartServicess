@@ -25,11 +25,15 @@ public class CustomCustomerIdGenerator extends SequenceStyleGenerator {
     public static final String NUMBER_FORMAT_DEFAULT = "%04d";
     public static final String VALUE_PREFIX_PARAMETER = "";
     public static final String VALUE_PREFIX_DEFAULT = "";
+    public static final String CONFIG_PREFER_SEQUENCE_PER_ENTITY = "prefer_sequence_per_entity";
+
+
     private String numberFormat;
     private String valuePrefix;
 
     @Override
     public Serializable generate(SharedSessionContractImplementor session, Object object) throws HibernateException {
+
         return valuePrefix+String.format(numberFormat,super.generate(session,object));
     }
     @Override
