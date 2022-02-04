@@ -12,6 +12,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -25,10 +26,11 @@ public class CartService {
     private ItemsRepository itemsRepository;
     @Autowired
     private BillingAddressRepository billingAddressRepository;
-    @Autowired(required=true)
+    @Autowired(required = true)
     private ShipingAddressRepository shipingAddressRepository;
 
-private  RestTemplate rt =new RestTemplate();
+    private final RestTemplate rt = new RestTemplate();
+
     public String addCart(CartEntity entity) {
         Integer oldQty = 0;
         if (cartRepository.existsByEmail(entity.getEmail()) && cartRepository.existsBySkuCode(entity.getSkuCode())) {
@@ -78,6 +80,7 @@ private  RestTemplate rt =new RestTemplate();
             entity.setQuantity(e.getQuantity());
             entity.setSkuCode(e.getSkuCode());
             entity.setPrice(skuPrice(e.getSkuCode()));
+            entity.setItemStatus("RECEIVED ");
             entity.setOrderEntity(order);
             return entity;
         }).collect(Collectors.toList());
@@ -88,7 +91,6 @@ private  RestTemplate rt =new RestTemplate();
 
         itemsRepository.saveAll(itemsEntityList);
 
-        order.setOrderStatus("RECEIVED");
         itemsEntityList.stream().map(e -> {
             InventoryModel inventoryModel = new InventoryModel();
             inventoryModel.setQuantityAvailable(e.getQuantity());
@@ -122,31 +124,24 @@ private  RestTemplate rt =new RestTemplate();
 
     public StatusUpdate updateOrderStatus(StatusUpdate statusUpdate) {
         String url = UriComponentsBuilder.fromUriString("http://localhost:8083/add-inventory").build().toUriString();
-
-        if (statusUpdate.getOrderStatus().contains("RETURNED")) {
-            List<ItemsEntity> itemsEntityList = itemsRepository.findAll();
-            List<InventoryModel> inventoryModelList = itemsEntityList.stream()
-                    .filter(e -> orderRepository.existsById(e.getOrderEntity().getOrderCode()))
-                    .map(e -> {
-                        return new InventoryModel(e.getSkuCode(), e.getQuantity());
-                    }).collect(Collectors.toList());
-            HttpHeaders headers = new HttpHeaders();
-            headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-             inventoryModelList.stream().forEach(e
-                     -> rt.exchange(url, HttpMethod.POST,new HttpEntity<InventoryModel>(
-                             new InventoryModel(e.getSkuCode(),e.getQuantityAvailable()),headers), String.class));
+        System.out.println(statusUpdate.toString());
+       ItemsEntity itemsEntity = itemsRepository.findByitemId(statusUpdate.getItemCode());
+        if (statusUpdate.getItemStatus().contains("RETURNED")) {
+                HttpHeaders headers = new HttpHeaders();
+                headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+          ResponseEntity<String>   inv =   rt.exchange(url, HttpMethod.POST, new HttpEntity<InventoryModel>(
+                        new InventoryModel(itemsEntity.getSkuCode(), itemsEntity.getQuantity()), headers), String.class);
         }
-        orderRepository.updateOrderStatus(statusUpdate.getOrderCode(), statusUpdate.getOrderStatus());
-        OrderEntity entity = orderRepository.getById(statusUpdate.getOrderCode());
-        System.out.println("--UpdateOrder___"+entity.getOrderStatus());
-        StatusUpdate statusUpdate1 =new StatusUpdate(entity.getOrderCode(), entity.getOrderStatus());
-        return statusUpdate1;
+        itemsRepository.updateByItemStaus(statusUpdate.getItemCode(),statusUpdate.getItemStatus());
+       ItemsEntity  items = itemsRepository.findByitemId(statusUpdate.getItemCode());
+        return        new StatusUpdate(items.getItemId(), items.getItemStatus());
+
     }
 
-    public StatusUpdate getStatus(String orderId) {
+    public StatusUpdate getStatus(String ItemId) {
 
-        OrderEntity entity = orderRepository.getById(orderId);
-        return new StatusUpdate(entity.getOrderCode(), entity.getOrderStatus());
+        ItemsEntity  entity = itemsRepository.getById(ItemId);
+        return new StatusUpdate(entity.getItemId(), entity.getItemStatus());
     }
 
     public String gemMailByToken(String token) {

@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class StatusUpdate {
-    private  String orderCode;
-    private String orderStatus;
+    private  String itemCode;
+    private String itemStatus;
 }

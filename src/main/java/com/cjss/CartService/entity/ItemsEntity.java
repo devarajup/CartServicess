@@ -21,7 +21,7 @@ public class ItemsEntity {
     @GenericGenerator(name = "item_id_gen", strategy = "com.cjss.CartService.util.CustomCustomerIdGenerator", parameters = {@org.hibernate.annotations.Parameter(name = CustomCustomerIdGenerator.VALUE_PREFIX_PARAMETER, value = "ITM"), @org.hibernate.annotations.Parameter(name = CustomCustomerIdGenerator.NUMBER_FORMAT_PARAMETER, value = "%03d")})
     @GeneratedValue(generator = "item_id_gen", strategy = GenerationType.IDENTITY)
     private String itemId;
-
+    private String ItemStatus;
     private  String skuCode;
     private  Integer quantity;
     private  Double price;

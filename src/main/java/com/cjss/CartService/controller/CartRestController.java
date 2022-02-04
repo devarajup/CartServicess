@@ -37,7 +37,7 @@ public class CartRestController {
         return entity;
     }
 
-    @PostMapping("/update-order-status")
+    @PostMapping("/update-item-status")
     public StatusUpdate updateOrderStatus(@RequestBody StatusUpdate statusUpdate) {
         return cartService.updateOrderStatus(statusUpdate);
     }

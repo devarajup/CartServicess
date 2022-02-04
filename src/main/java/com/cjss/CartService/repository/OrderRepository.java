@@ -10,10 +10,7 @@ import javax.transaction.Transactional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<OrderEntity, String> {
-    @Transactional
-    @Modifying
-    @Query("UPDATE OrderEntity  o SET orderStatus= :orderStatus WHERE o.orderCode=:orderCode")
-    void updateOrderStatus(String orderCode, String orderStatus);
+
 
     OrderEntity getByOrderCode(String orderCode);
 }

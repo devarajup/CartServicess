@@ -24,11 +24,7 @@ public class OrderEntity {
     @GeneratedValue(generator = "order_code_gen", strategy = GenerationType.IDENTITY)
     private String orderCode;
 
-    public OrderEntity(String orderStatus) {
-        this.orderStatus = orderStatus;
-    }
 
-    private String orderStatus;
 /*   @JsonManagedReference
     public List<ItemsEntity> getItemsOrderedList() {
         return itemsOrderedList;
