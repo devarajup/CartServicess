@@ -131,8 +131,7 @@ public class CartService {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-            ResponseEntity<String> inv = rt.exchange(url, HttpMethod.POST, new HttpEntity<InventoryModel>(
-                    new InventoryModel(itemsEntity.getSkuCode(), itemsEntity.getQuantity()), headers), String.class);
+            ResponseEntity<String> inv = rt.exchange(url, HttpMethod.POST, new HttpEntity<InventoryModel>(new InventoryModel(itemsEntity.getSkuCode(), itemsEntity.getQuantity()), headers), String.class);
         }
         itemsRepository.updateByItemStaus(statusUpdate.getItemCode(), statusUpdate.getItemStatus());
         ItemsEntity items = itemsRepository.findByitemId(statusUpdate.getItemCode());
@@ -156,8 +155,7 @@ public class CartService {
     }
 
     public ShippingAddressEntity getShipAddress(String email) {
-        String url = UriComponentsBuilder.fromUriString("http://localhost:8081/get-address/")
-                .path(email).build().toUriString();
+        String url = UriComponentsBuilder.fromUriString("http://localhost:8081/get-address/").path(email).build().toUriString();
 //        String url = "http://localhost:8081/get-address/deva6@mail.com";
 
         System.out.println(url);
