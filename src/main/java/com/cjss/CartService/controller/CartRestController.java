@@ -1,6 +1,5 @@
 package com.cjss.CartService.controller;
 
-import com.cjss.CartService.entity.CartEntity;
 import com.cjss.CartService.entity.OrderEntity;
 import com.cjss.CartService.model.CartModel;
 import com.cjss.CartService.model.StatusUpdate;
@@ -8,7 +7,6 @@ import com.cjss.CartService.service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.SQLException;
 
 @RestController
 public class CartRestController {
@@ -16,10 +14,9 @@ public class CartRestController {
     private CartService cartService;
 
     @PostMapping("/add-cart")
-    public String addCart(
-            @RequestBody CartModel cartModel) {
+    public String addCart(@RequestBody CartModel cartModel) {
 
-        return cartService.addCart(getEntity(cartModel));
+        return cartService.addCart(cartModel);
     }
 
     @GetMapping("/view-cart/{email}")
@@ -27,15 +24,6 @@ public class CartRestController {
         return cartService.viewCart(email);
     }
 
-    CartEntity getEntity(CartModel model) {
-        CartEntity entity = new CartEntity();
-        entity.setEmail(model.getEmail());
-        entity.setProductCode(model.getProductCode());
-        entity.setQuantity(model.getQuantity());
-        entity.setSkuCode(model.getSkuCode());
-
-        return entity;
-    }
 
     @PostMapping("/update-item-status")
     public StatusUpdate updateOrderStatus(@RequestBody StatusUpdate statusUpdate) {
@@ -43,7 +31,7 @@ public class CartRestController {
     }
 
     @PostMapping("/place-order/{email}")
-    public OrderEntity placeOrder(@PathVariable("email") String email) throws SQLException {
+    public OrderEntity placeOrder(@PathVariable("email") String email) {
 
         return cartService.placeOrder(email);
     }

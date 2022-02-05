@@ -1,6 +1,7 @@
 package com.cjss.CartService.service;
 
 import com.cjss.CartService.entity.*;
+import com.cjss.CartService.model.CartModel;
 import com.cjss.CartService.model.CustomerAddressModel;
 import com.cjss.CartService.model.InventoryModel;
 import com.cjss.CartService.model.StatusUpdate;
@@ -30,7 +31,8 @@ public class CartService {
     @Autowired(required = true)
     private ShipingAddressRepository shipingAddressRepository;
 
-    public String addCart(CartEntity entity) {
+    public String addCart(CartModel cartModel) {
+      CartEntity entity =  getEntity(cartModel);
         Integer oldQty = 0;
         if (cartRepository.existsByEmail(entity.getEmail()) && cartRepository.existsBySkuCode(entity.getSkuCode())) {
             oldQty = cartRepository.findAllByEmail(entity.getEmail()).stream().findFirst().get().getQuantity();
@@ -42,6 +44,15 @@ public class CartService {
         cartRepository.save(entity);
         return "added successfully";
 
+    }
+    CartEntity getEntity(CartModel model) {
+        CartEntity entity = new CartEntity();
+        entity.setEmail(model.getEmail());
+        entity.setProductCode(model.getProductCode());
+        entity.setQuantity(model.getQuantity());
+        entity.setSkuCode(model.getSkuCode());
+
+        return entity;
     }
 
     public String viewCart(String email) {

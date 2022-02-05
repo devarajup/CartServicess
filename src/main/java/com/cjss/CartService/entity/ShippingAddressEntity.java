@@ -31,7 +31,6 @@ public class ShippingAddressEntity {
         this.code = code;
         this.state = state;
         this.city = city;
-//        this.orderEntity = orderEntity;
     }
 
     private  String code;
