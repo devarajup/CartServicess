@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class StatusUpdate {
     private  String itemCode;
     private String itemStatus;
+    private String  message ;
 }

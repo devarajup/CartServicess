@@ -1,6 +1,7 @@
 package com.cjss.CartService.service;
 
 import com.cjss.CartService.entity.*;
+import com.cjss.CartService.model.CustomerAddressModel;
 import com.cjss.CartService.model.InventoryModel;
 import com.cjss.CartService.model.StatusUpdate;
 import com.cjss.CartService.repository.*;
@@ -12,12 +13,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @Service
 public class CartService {
+    private final RestTemplate rt = new RestTemplate();
     @Autowired
     private CartRepository cartRepository;
     @Autowired
@@ -28,8 +29,6 @@ public class CartService {
     private BillingAddressRepository billingAddressRepository;
     @Autowired(required = true)
     private ShipingAddressRepository shipingAddressRepository;
-
-    private final RestTemplate rt = new RestTemplate();
 
     public String addCart(CartEntity entity) {
         Integer oldQty = 0;
@@ -99,8 +98,8 @@ public class CartService {
             return inventoryModel;
         }).collect(Collectors.toList()).forEach(System.out::println);
         //   String id = orderRepository.save(order).getOrderCode();
-        Integer billId = billingAddressRepository.save(new BillingAddressEntity("234", "dufdf", "fehdu")).getBillingAddressId();
-        Integer shipId = shipingAddressRepository.save(new ShippingAddressEntity("423", "gdf", "dfdf")).getShippingAddressId();
+        Integer billId = billingAddressRepository.save(getBillAddress(email)).getBillingAddressId();
+        Integer shipId = shipingAddressRepository.save(getShipAddress(email)).getShippingAddressId();
         order.setShippingAddressEntity(shipingAddressRepository.getById(shipId));
         order.setBillingAddressEntity(billingAddressRepository.getById(billId));
         String id = orderRepository.save(order).getOrderCode();
@@ -125,23 +124,25 @@ public class CartService {
     public StatusUpdate updateOrderStatus(StatusUpdate statusUpdate) {
         String url = UriComponentsBuilder.fromUriString("http://localhost:8083/add-inventory").build().toUriString();
         System.out.println(statusUpdate.toString());
-       ItemsEntity itemsEntity = itemsRepository.findByitemId(statusUpdate.getItemCode());
+        ItemsEntity itemsEntity = itemsRepository.findByitemId(statusUpdate.getItemCode());
+        if (itemsRepository.findByitemId(statusUpdate.getItemCode()).getItemStatus().contains("RETURNED"))
+            return new StatusUpdate(itemsEntity.getItemId(), itemsEntity.getItemStatus(), "Already Item Return");
         if (statusUpdate.getItemStatus().contains("RETURNED")) {
-                HttpHeaders headers = new HttpHeaders();
-                headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-          ResponseEntity<String>   inv =   rt.exchange(url, HttpMethod.POST, new HttpEntity<InventoryModel>(
-                        new InventoryModel(itemsEntity.getSkuCode(), itemsEntity.getQuantity()), headers), String.class);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+            ResponseEntity<String> inv = rt.exchange(url, HttpMethod.POST, new HttpEntity<InventoryModel>(
+                    new InventoryModel(itemsEntity.getSkuCode(), itemsEntity.getQuantity()), headers), String.class);
         }
-        itemsRepository.updateByItemStaus(statusUpdate.getItemCode(),statusUpdate.getItemStatus());
-       ItemsEntity  items = itemsRepository.findByitemId(statusUpdate.getItemCode());
-        return        new StatusUpdate(items.getItemId(), items.getItemStatus());
+        itemsRepository.updateByItemStaus(statusUpdate.getItemCode(), statusUpdate.getItemStatus());
+        ItemsEntity items = itemsRepository.findByitemId(statusUpdate.getItemCode());
+        return new StatusUpdate(items.getItemId(), items.getItemStatus(), "Updated Successfully");
 
     }
 
     public StatusUpdate getStatus(String ItemId) {
-
-        ItemsEntity  entity = itemsRepository.getById(ItemId);
-        return new StatusUpdate(entity.getItemId(), entity.getItemStatus());
+        ItemsEntity entity = itemsRepository.getById(ItemId);
+        return new StatusUpdate(entity.getItemId(), entity.getItemStatus(), " ");
     }
 
     public String gemMailByToken(String token) {
@@ -152,5 +153,36 @@ public class CartService {
         //3. make HTTP call and get Response
         ResponseEntity<String> resp = rt.getForEntity(url, String.class);
         return resp.getBody();
+    }
+
+    public ShippingAddressEntity getShipAddress(String email) {
+        String url = UriComponentsBuilder.fromUriString("http://localhost:8081/get-address/")
+                .path(email).build().toUriString();
+//        String url = "http://localhost:8081/get-address/deva6@mail.com";
+
+        System.out.println(url);
+        //1. create RT object
+        RestTemplate rt = new RestTemplate();
+        System.out.println(url);
+        //3. make HTTP call and get Response
+        CustomerAddressModel resp = rt.getForEntity(url, CustomerAddressModel.class).getBody();
+        if (resp.getShippingAddress() == true) {
+            return new ShippingAddressEntity(resp.getCode(), resp.getState(), resp.getCity());
+        }
+        return new ShippingAddressEntity("NA", "NA", "NA");
+    }
+
+    public BillingAddressEntity getBillAddress(String email) {
+        String url = UriComponentsBuilder.fromUriString("http://localhost:8081/get-address/").path(email).build().toUriString();
+        //1. create RT object
+//        String url = "http://localhost:8081/get-address/deva6@mail.com";
+        RestTemplate rt = new RestTemplate();
+        System.out.println(url);
+        //3. make HTTP call and get Response
+        CustomerAddressModel resp = rt.getForEntity(url, CustomerAddressModel.class).getBody();
+        if (resp.getBillingAddress() == true) {
+            return new BillingAddressEntity(resp.getCode(), resp.getState(), resp.getCity());
+        }
+        return new BillingAddressEntity("NA", "NA", "NA");
     }
 }
