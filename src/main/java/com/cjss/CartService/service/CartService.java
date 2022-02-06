@@ -1,10 +1,7 @@
 package com.cjss.CartService.service;
 
 import com.cjss.CartService.entity.*;
-import com.cjss.CartService.model.CartModel;
-import com.cjss.CartService.model.CustomerAddressModel;
-import com.cjss.CartService.model.InventoryModel;
-import com.cjss.CartService.model.StatusUpdate;
+import com.cjss.CartService.model.*;
 import com.cjss.CartService.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
@@ -32,7 +29,7 @@ public class CartService {
     private ShipingAddressRepository shipingAddressRepository;
 
     public String addCart(CartModel cartModel) {
-      CartEntity entity =  getEntity(cartModel);
+        CartEntity entity = getEntity(cartModel);
         Integer oldQty = 0;
         if (cartRepository.existsByEmail(entity.getEmail()) && cartRepository.existsBySkuCode(entity.getSkuCode())) {
             oldQty = cartRepository.findAllByEmail(entity.getEmail()).stream().findFirst().get().getQuantity();
@@ -45,6 +42,7 @@ public class CartService {
         return "added successfully";
 
     }
+
     CartEntity getEntity(CartModel model) {
         CartEntity entity = new CartEntity();
         entity.setEmail(model.getEmail());
@@ -85,6 +83,7 @@ public class CartService {
     public OrderEntity placeOrder(String email) {
         List<CartEntity> cartEntityList = cartRepository.findAllByEmail(email);
         OrderEntity order = new OrderEntity();
+        order.setItemsOrderedList(null);
         List<ItemsEntity> itemsEntityList = cartEntityList.stream().map(e -> {
             ItemsEntity entity = new ItemsEntity();
             entity.setQuantity(e.getQuantity());
@@ -92,8 +91,10 @@ public class CartService {
             entity.setPrice(skuPrice(e.getSkuCode()));
             entity.setItemStatus("RECEIVED ");
             entity.setOrderEntity(order);
+            //       System.out.println(entity.toString());
             return entity;
         }).collect(Collectors.toList());
+
         order.setItemsOrderedList(itemsEntityList);
 
 //        order.setBillingAddressEntity(billingAddressRepository.);
@@ -132,12 +133,14 @@ public class CartService {
 
     }
 
-    public StatusUpdate updateOrderStatus(StatusUpdate statusUpdate) {
+    public ResponseEntity<StatusUpdate> updateItemStatus(StatusUpdate statusUpdate) {
         String url = UriComponentsBuilder.fromUriString("http://localhost:8083/add-inventory").build().toUriString();
         System.out.println(statusUpdate.toString());
         ItemsEntity itemsEntity = itemsRepository.findByitemId(statusUpdate.getItemCode());
-        if (itemsRepository.findByitemId(statusUpdate.getItemCode()).getItemStatus().contains("RETURNED"))
-            return new StatusUpdate(itemsEntity.getItemId(), itemsEntity.getItemStatus(), "Already Item Return");
+        if (itemsRepository.findByitemId(statusUpdate.getItemCode()).getItemStatus().contains("RETURNED")) {
+            StatusUpdate statusUpdate1 = new StatusUpdate(itemsEntity.getItemId(), itemsEntity.getItemStatus(), "Already Item Return");
+            return new ResponseEntity<StatusUpdate>(statusUpdate1, HttpStatus.ALREADY_REPORTED);
+        }
         if (statusUpdate.getItemStatus().contains("RETURNED")) {
 
             HttpHeaders headers = new HttpHeaders();
@@ -146,8 +149,8 @@ public class CartService {
         }
         itemsRepository.updateByItemStaus(statusUpdate.getItemCode(), statusUpdate.getItemStatus());
         ItemsEntity items = itemsRepository.findByitemId(statusUpdate.getItemCode());
-        return new StatusUpdate(items.getItemId(), items.getItemStatus(), "Updated Successfully");
-
+        StatusUpdate statusUpdate1 = new StatusUpdate(items.getItemId(), items.getItemStatus(), "Updated Successfully");
+        return new ResponseEntity<StatusUpdate>(statusUpdate1, HttpStatus.ACCEPTED);
     }
 
     public StatusUpdate getStatus(String ItemId) {
@@ -193,5 +196,27 @@ public class CartService {
             return new BillingAddressEntity(resp.getCode(), resp.getState(), resp.getCity());
         }
         return new BillingAddressEntity("NA", "NA", "NA");
+    }
+
+    public ResponseEntity<String> updateOrderStatus(OrderStatusUpdate update) {
+
+        List<String> idList = itemsRepository.getItemsByOrderId(update.getOrderCode());
+        System.out.println(idList.toString());
+        List<ItemsEntity> itemsEntityList = idList.stream()
+                .map(i -> itemsRepository.findByitemId(i))
+                .collect(Collectors.toList());
+        List<ItemsEntity>  itemsEntities=    itemsEntityList.stream()
+                .filter(i -> compareItemIntoOrderId(update.getOrderCode(), i.getItemId()))
+                .map(i -> {
+                    i.setItemStatus(update.getOrderStatus());
+                    return i;
+                }).collect(Collectors.toList());
+        itemsRepository.saveAll(itemsEntities);
+        return new ResponseEntity<String>("Successfully updated", HttpStatus.OK);
+    }
+
+    private Boolean compareItemIntoOrderId(String orderId, String itemId) {
+
+        return itemsRepository.checkOrderIdInItem(orderId, itemId) != null ? true : false;
     }
 }

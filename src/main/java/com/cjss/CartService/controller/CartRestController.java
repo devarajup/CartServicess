@@ -2,9 +2,11 @@ package com.cjss.CartService.controller;
 
 import com.cjss.CartService.entity.OrderEntity;
 import com.cjss.CartService.model.CartModel;
+import com.cjss.CartService.model.OrderStatusUpdate;
 import com.cjss.CartService.model.StatusUpdate;
 import com.cjss.CartService.service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -26,8 +28,13 @@ public class CartRestController {
 
 
     @PostMapping("/update-item-status")
-    public StatusUpdate updateOrderStatus(@RequestBody StatusUpdate statusUpdate) {
-        return cartService.updateOrderStatus(statusUpdate);
+    public ResponseEntity<StatusUpdate> updateItemStatus(@RequestBody StatusUpdate statusUpdate) {
+        return cartService.updateItemStatus(statusUpdate);
+    }
+    @PostMapping("/update-Order-status")
+    public ResponseEntity<String> updateOrderStatus(@RequestBody OrderStatusUpdate orderStatusUpdate) {
+        System.out.println(orderStatusUpdate.toString());
+        return cartService.updateOrderStatus(orderStatusUpdate);
     }
 
     @PostMapping("/place-order/{email}")
