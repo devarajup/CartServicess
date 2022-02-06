@@ -2,6 +2,7 @@ package com.cjss.CartService.controller;
 
 import com.cjss.CartService.entity.OrderEntity;
 import com.cjss.CartService.model.CartModel;
+import com.cjss.CartService.model.OrderModel;
 import com.cjss.CartService.model.OrderStatusUpdate;
 import com.cjss.CartService.model.StatusUpdate;
 import com.cjss.CartService.service.CartService;
@@ -38,7 +39,7 @@ public class CartRestController {
     }
 
     @PostMapping("/place-order/{email}")
-    public OrderEntity placeOrder(@PathVariable("email") String email) {
+    public OrderModel placeOrder(@PathVariable("email") String email) {
 
         return cartService.placeOrder(email);
     }

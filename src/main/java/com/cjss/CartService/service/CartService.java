@@ -80,7 +80,7 @@ public class CartService {
         return resp.getBody();
     }
 
-    public OrderEntity placeOrder(String email) {
+    public OrderModel placeOrder(String email) {
         List<CartEntity> cartEntityList = cartRepository.findAllByEmail(email);
         OrderEntity order = new OrderEntity();
         order.setItemsOrderedList(null);
@@ -114,9 +114,9 @@ public class CartService {
         Integer shipId = shipingAddressRepository.save(getShipAddress(email)).getShippingAddressId();
         order.setShippingAddressEntity(shipingAddressRepository.getById(shipId));
         order.setBillingAddressEntity(billingAddressRepository.getById(billId));
-        String id = orderRepository.save(order).getOrderCode();
+        OrderEntity orderEntity = orderRepository.save(order);
 
-        return orderRepository.getById(id);
+        return getOrderModel(orderEntity);
     }
 
     public Integer updateInventory(InventoryModel inventoryModel) {
@@ -136,20 +136,23 @@ public class CartService {
     public ResponseEntity<StatusUpdate> updateItemStatus(StatusUpdate statusUpdate) {
         String url = UriComponentsBuilder.fromUriString("http://localhost:8083/add-inventory").build().toUriString();
         System.out.println(statusUpdate.toString());
-        ItemsEntity itemsEntity = itemsRepository.findByitemId(statusUpdate.getItemCode());
+        ItemsEntity itemsEntity =itemsRepository.findByitemId(statusUpdate.getItemCode());
         if (itemsRepository.findByitemId(statusUpdate.getItemCode()).getItemStatus().contains("RETURNED")) {
             StatusUpdate statusUpdate1 = new StatusUpdate(itemsEntity.getItemId(), itemsEntity.getItemStatus(), "Already Item Return");
             return new ResponseEntity<StatusUpdate>(statusUpdate1, HttpStatus.ALREADY_REPORTED);
         }
-        if (statusUpdate.getItemStatus().contains("RETURNED")) {
+        if (statusUpdate.getItemStatus().contains("RETURNED")
+                && !itemsRepository.findByitemId(statusUpdate.getItemStatus()).getItemStatus().contains("RETURNED")) {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
-            ResponseEntity<String> inv = rt.exchange(url, HttpMethod.POST, new HttpEntity<InventoryModel>(new InventoryModel(itemsEntity.getSkuCode(), itemsEntity.getQuantity()), headers), String.class);
+            ResponseEntity<String> inv = rt.exchange(url, HttpMethod.POST,
+                    new HttpEntity<InventoryModel>(new InventoryModel(itemsEntity.getSkuCode(), itemsEntity.getQuantity()), headers), String.class);
         }
         itemsRepository.updateByItemStaus(statusUpdate.getItemCode(), statusUpdate.getItemStatus());
         ItemsEntity items = itemsRepository.findByitemId(statusUpdate.getItemCode());
         StatusUpdate statusUpdate1 = new StatusUpdate(items.getItemId(), items.getItemStatus(), "Updated Successfully");
+        System.out.println(statusUpdate1.toString());
         return new ResponseEntity<StatusUpdate>(statusUpdate1, HttpStatus.ACCEPTED);
     }
 
@@ -218,5 +221,16 @@ public class CartService {
     private Boolean compareItemIntoOrderId(String orderId, String itemId) {
 
         return itemsRepository.checkOrderIdInItem(orderId, itemId) != null ? true : false;
+    }
+
+    public  OrderModel getOrderModel(OrderEntity entity){
+       List<ItemsModel> itemsModelList= entity.getItemsOrderedList().stream()
+               .map(e->new ItemsModel(e.getItemId(),e.getItemStatus(),e.getSkuCode(),e.getQuantity(),e.getPrice())).collect(Collectors.toList());
+        ShippingAddressEntity sAddress = entity.getShippingAddressEntity();
+        ShippingAddressModel  sAddressModel = new ShippingAddressModel(sAddress.getCode(),sAddress.getState(),sAddress.getCity());
+        BillingAddressEntity bAddress = entity.getBillingAddressEntity();
+        BillingAddressModel bAddressModel =new BillingAddressModel(bAddress.getCode(),bAddress.getState(),bAddress.getCity());
+     OrderModel orderModel = new OrderModel(entity.getOrderCode(),itemsModelList,sAddressModel,bAddressModel);
+        return  orderModel;
     }
 }
